@@ -198,23 +198,22 @@ class RubyMappings
         ENV['BUNDLE_GEMFILE'] = 'rb/Gemfile'
 
         gem_path = "#{Dir.pwd}/build/third_party/rb"
-        bin_path = "#{gem_path}/bin"
+        bin_path = [gem_path, "bin"].join(File::SEPARATOR)
+        bin_path.tr!(File::SEPARATOR, File::ALT_SEPARATOR) if File::ALT_SEPARATOR # Windows
+
         ENV["GEM_PATH"] = gem_path
-        ENV["PATH"] = [bin_path, ENV["PATH"]].join(":")
+        ENV["PATH"] = [bin_path, ENV["PATH"]].join(File::PATH_SEPARATOR)
 
         gems = `gem list`.split("\n")
-        if gems.none? { |gem| gem =~ /^bundler\s/ }
+        if gems.grep(/^bundler\s/).empty?
           bundler_gem = Dir["third_party/rb/bundler-*.gem"].first
-
-          sh "gem", "install",
-             "--local", "--no-ri", "--no-rdoc",
-             "--install-dir", gem_path,
-             "--bindir", bin_path,
-             bundler_gem
+          sh "gem", "install", "--local", "--no-ri", "--no-rdoc",
+             "--install-dir", gem_path, "--bindir", bin_path, bundler_gem
         end
 
         sh "bundle", "config", "--local", "cache_path", "../third_party/rb/vendor/cache"
         sh "bundle", "config", "--local", "path", "#{gem_path}/vendor/bundle"
+
         sh "bundle", "install", "--local"
       end
     end
